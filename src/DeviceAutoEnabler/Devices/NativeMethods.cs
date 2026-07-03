@@ -23,7 +23,12 @@ internal static class NativeMethods
     // --- Device install function + state-change constants ---
     internal const uint DIF_PROPERTYCHANGE = 0x00000012;
     internal const uint DICS_ENABLE = 0x00000001;
+
+    // Scope flags. A device can be disabled globally (all hardware profiles) or only for the
+    // current profile (config-specific). Tools like the NVIDIA Control Panel apply a
+    // config-specific disable, which a global-only enable will NOT clear — so we must enable both.
     internal const uint DICS_FLAG_GLOBAL = 0x00000001;
+    internal const uint DICS_FLAG_CONFIGSPECIFIC = 0x00000002;
 
     // --- Config Manager status / problem codes ---
     internal const uint CR_SUCCESS = 0x00000000;

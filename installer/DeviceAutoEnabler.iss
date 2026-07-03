@@ -60,15 +60,27 @@ Name: "{commonappdata}\{#MyServiceName}"
 Name: "{commonappdata}\{#MyServiceName}\logs"
 
 [Run]
-; 1) Lock down ProgramData folder ACLs using well-known SIDs (language-independent):
+; 1) Lock down the config folder using well-known SIDs (language-independent):
 ;    Administrators (S-1-5-32-544) + SYSTEM (S-1-5-18) = full control,
-;    Users (S-1-5-32-545) = read & execute only. Inheritance is removed first.
+;    Users (S-1-5-32-545) = read & execute. Inheritance is removed first. The (OI)(CI) flags make
+;    these ACEs inheritable, which is correct for the folder and the logs subdirectory.
 Filename: "{sys}\icacls.exe"; \
   Parameters: """{commonappdata}\{#MyServiceName}"" /inheritance:r /grant:r ""*S-1-5-32-544:(OI)(CI)F"" /grant:r ""*S-1-5-18:(OI)(CI)F"" /grant:r ""*S-1-5-32-545:(OI)(CI)RX"" /T /C"; \
   Flags: runhidden waituntilterminated; \
   StatusMsg: "Securing configuration folder..."
 
-; 2) Register and start the service (LocalSystem, auto-start) via the app's own install verb.
+; 2) Grant permissions on config.json EXPLICITLY, with file-valid flags (no (OI)(CI)).
+;    The inheritable (OI)(CI) ACEs above are only valid on containers, so the /T pass does NOT
+;    apply them to the config.json leaf file (icacls fails on it and /C hides the error), which
+;    would leave SYSTEM unable to read the file. Setting them directly on the file fixes that:
+;    SYSTEM + Administrators = full control (the LocalSystem service must always read it),
+;    Users = modify (edit the file directly without elevation or taking ownership).
+Filename: "{sys}\icacls.exe"; \
+  Parameters: """{commonappdata}\{#MyServiceName}\config.json"" /grant:r ""*S-1-5-18:F"" /grant:r ""*S-1-5-32-544:F"" /grant:r ""*S-1-5-32-545:M"" /C"; \
+  Flags: runhidden waituntilterminated; \
+  StatusMsg: "Setting configuration file permissions..."
+
+; 3) Register and start the service (LocalSystem, auto-start) via the app's own install verb.
 Filename: "{app}\{#MyExeName}"; Parameters: "install"; Flags: runhidden waituntilterminated; StatusMsg: "Registering and starting the service..."
 
 [UninstallRun]

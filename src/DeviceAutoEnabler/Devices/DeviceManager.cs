@@ -125,9 +125,15 @@ public sealed class DeviceManager
             }
 
             var (ok, err) = TryEnable(setHandle, ref devInfo);
+
+            // The 'device' snapshot was read before the enable attempt, so its IsDisabled is stale
+            // (always true here). Re-read the node so the outcome — and the caller's transition
+            // tracking/logging — reflects the device's actual post-enable state.
+            var refreshed = ReadDeviceInfo(setHandle, ref devInfo) ?? device;
+
             outcomes.Add(new DeviceScanOutcome
             {
-                Device = device,
+                Device = refreshed,
                 EnableAttempted = true,
                 EnableSucceeded = ok,
                 EnableError = err,
@@ -263,6 +269,31 @@ public sealed class DeviceManager
 
     private (bool ok, string? error) TryEnable(IntPtr setHandle, ref SP_DEVINFO_DATA devInfo)
     {
+        // A device may be disabled globally (Device Manager) or config-specific for the current
+        // hardware profile (e.g. NVIDIA Control Panel "disconnect"). Enabling only one scope leaves
+        // the other disable in place, so we apply the enable to both scopes — matching devcon.
+        // The global pass is best-effort; the config-specific pass is the one whose failure counts.
+        ApplyStateChange(setHandle, ref devInfo, DICS_FLAG_GLOBAL);
+
+        var (configOk, configError) = ApplyStateChange(setHandle, ref devInfo, DICS_FLAG_CONFIGSPECIFIC);
+        if (!configOk)
+        {
+            return (false, configError);
+        }
+
+        // SetupDiCallClassInstaller returning success only means the request was accepted; it does
+        // not guarantee the node left the disabled state. Re-read the devnode status so we report
+        // (and log) the real outcome instead of a misleading success.
+        if (IsDisabled(devInfo.DevInst))
+        {
+            return (false, "Enable call succeeded but the device is still reporting CM_PROB_DISABLED (a reboot may be required, or another component is re-disabling it).");
+        }
+
+        return (true, null);
+    }
+
+    private static (bool ok, string? error) ApplyStateChange(IntPtr setHandle, ref SP_DEVINFO_DATA devInfo, uint scope)
+    {
         var propChange = new SP_PROPCHANGE_PARAMS
         {
             ClassInstallHeader = new SP_CLASSINSTALL_HEADER
@@ -271,19 +302,19 @@ public sealed class DeviceManager
                 InstallFunction = DIF_PROPERTYCHANGE,
             },
             StateChange = DICS_ENABLE,
-            Scope = DICS_FLAG_GLOBAL,
+            Scope = scope,
             HwProfile = 0,
         };
 
         var paramsSize = (uint)Marshal.SizeOf<SP_PROPCHANGE_PARAMS>();
         if (!SetupDiSetClassInstallParams(setHandle, ref devInfo, ref propChange, paramsSize))
         {
-            return (false, $"SetupDiSetClassInstallParams failed (Win32 error {Marshal.GetLastWin32Error()}).");
+            return (false, $"SetupDiSetClassInstallParams (scope 0x{scope:X}) failed (Win32 error {Marshal.GetLastWin32Error()}).");
         }
 
         if (!SetupDiCallClassInstaller(DIF_PROPERTYCHANGE, setHandle, ref devInfo))
         {
-            return (false, $"SetupDiCallClassInstaller failed (Win32 error {Marshal.GetLastWin32Error()}).");
+            return (false, $"SetupDiCallClassInstaller (scope 0x{scope:X}) failed (Win32 error {Marshal.GetLastWin32Error()}).");
         }
 
         return (true, null);

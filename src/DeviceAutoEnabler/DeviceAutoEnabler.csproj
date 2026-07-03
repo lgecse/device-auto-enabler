@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>DeviceAutoEnabler</RootNamespace>
+    <AssemblyName>DeviceAutoEnabler</AssemblyName>
+    <Version>1.0.0</Version>
+    <Product>Device Auto Enabler</Product>
+    <Company>Device Auto Enabler</Company>
+    <Description>Windows service that keeps configured devices enabled by re-enabling them when found disabled.</Description>
+
+    <!-- Treat warnings seriously; keep the surface clean. -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <AnalysisLevel>latest</AnalysisLevel>
+
+    <!-- Footprint tuning: workstation, concurrent GC keeps a low-latency, low-idle profile. -->
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+    <!-- WMI/System.Management is not culture-agnostic-hostile; invariant globalization trims ICU. -->
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- ReadyToRun improves cold-start without the AOT constraints that break System.Management. -->
+    <PublishReadyToRun>true</PublishReadyToRun>
+
+    <!-- Self-contained single-file publish (no runtime install required on target). -->
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <DebugType>embedded</DebugType>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.EventLog" Version="8.0.1" />
+    <PackageReference Include="System.Management" Version="8.0.0" />
+  </ItemGroup>
+
+</Project>

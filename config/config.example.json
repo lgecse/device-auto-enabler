@@ -1,0 +1,16 @@
+{
+  "eventDebounceMs": 2000,
+  "perDeviceCooldownSeconds": 60,
+  "regexMatchTimeoutMs": 250,
+  "logLevel": "Information",
+  "logMaxFileBytes": 5242880,
+  "logRetainedFileCount": 5,
+  "devices": [
+    {
+      "match": "PCI\\VEN_10DE&DEV_2D04",
+      "matchOn": "hardwareId",
+      "mode": "contains",
+      "classGuid": "4d36e968-e325-11ce-bfc1-08002be10318"
+    }
+  ]
+}

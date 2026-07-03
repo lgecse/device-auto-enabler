@@ -46,6 +46,35 @@ public sealed class ConfigLoader : IDisposable
     /// <summary>The current, validated configuration.</summary>
     public AppConfig Current => _current;
 
+    /// <summary>The absolute path of the configuration file this loader reads.</summary>
+    public string ConfigPath => _configPath;
+
+    /// <summary>
+    /// Reads the raw on-disk config text for diagnostics/startup logging. Returns null when the
+    /// file is missing or unreadable, with the reason in <paramref name="error"/>.
+    /// </summary>
+    public string? TryReadRawContent(out string? error)
+    {
+        error = null;
+        try
+        {
+            if (!File.Exists(_configPath))
+            {
+                error = "file does not exist";
+                return null;
+            }
+
+            using var fs = new FileStream(_configPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var reader = new StreamReader(fs);
+            return reader.ReadToEnd();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            return null;
+        }
+    }
+
     /// <summary>
     /// Begin watching the config file for changes. Safe to call once after construction.
     /// </summary>

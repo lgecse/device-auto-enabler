@@ -54,6 +54,8 @@ public sealed class Worker : BackgroundService
         _stoppingToken = stoppingToken;
         _logger.LogInformation("Device Auto Enabler service starting.");
 
+        LogConfigAtStartup();
+
         RecompileRules(_config);
 
         // Create the debounce timer once, dormant, before any device-change events can arrive.
@@ -98,6 +100,25 @@ public sealed class Worker : BackgroundService
 
         // Timer.Change is thread-safe; a burst of concurrent events simply resets the debounce window.
         _debounceTimer?.Change(debounceMs, Timeout.Infinite);
+    }
+
+    /// <summary>
+    /// Logs which file the service is actually reading configuration from and its current on-disk
+    /// content. Invaluable for diagnosing "wrong config"/"0 rules" cases where the running service
+    /// is reading a different file than the one being edited.
+    /// </summary>
+    private void LogConfigAtStartup()
+    {
+        var path = _configLoader.ConfigPath;
+        var content = _configLoader.TryReadRawContent(out var error);
+        if (content is null)
+        {
+            _logger.LogWarning("Configuration file {Path} could not be read ({Reason}); running with built-in defaults.", path, error);
+            return;
+        }
+
+        _logger.LogInformation("Loading configuration from {Path}. Current on-disk content:{NewLine}{Content}",
+            path, Environment.NewLine, content);
     }
 
     private void OnConfigChanged(AppConfig config)

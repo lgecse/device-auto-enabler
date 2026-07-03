@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.Versioning;
+using System.Security.Principal;
 
 namespace DeviceAutoEnabler;
 
@@ -20,8 +21,14 @@ public static class ServiceControl
             return 1;
         }
 
-        // binPath must run the service with the "run" argument so it hosts the worker.
-        var binPath = $"\"{exePath}\" run";
+        // sc.exe stores this verbatim as the service ImagePath and launches it with the "run"
+        // argument so the exe hosts the worker. The executable path is quoted so the Service
+        // Control Manager can distinguish it from the trailing argument and because the default
+        // install location (C:\Program Files\...) contains a space. Those inner quotes are
+        // backslash-escaped so the whole value reaches sc.exe as a single argument; without the
+        // escaping the doubled quotes make sc.exe misparse the path and silently fail to create
+        // the service.
+        var binPath = $"\\\"{exePath}\\\" run";
 
         var create = RunSc($"create {AppPaths.ServiceName} binPath= \"{binPath}\" start= auto obj= LocalSystem DisplayName= \"Device Auto Enabler\"");
         if (create != 0)
@@ -58,6 +65,25 @@ public static class ServiceControl
 
         Console.WriteLine($"Service '{AppPaths.ServiceName}' removed.");
         return 0;
+    }
+
+    /// <summary>
+    /// True when the current process is running with an elevated (Administrator) token. Enabling
+    /// devices via SetupAPI requires this; the LocalSystem service account satisfies it implicitly.
+    /// </summary>
+    public static bool IsElevated()
+    {
+        try
+        {
+            using var identity = WindowsIdentity.GetCurrent();
+            return new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);
+        }
+        catch
+        {
+            // If we cannot determine the token, don't block execution; device calls will surface
+            // their own access errors if elevation is actually missing.
+            return true;
+        }
     }
 
     private static string? GetExecutablePath()

@@ -21,6 +21,7 @@ public sealed class ConfigLoader : IDisposable
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         AllowTrailingCommas = true,
         ReadCommentHandling = JsonCommentHandling.Skip,
+        WriteIndented = true,
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false) },
     };
 
@@ -115,8 +116,56 @@ public sealed class ConfigLoader : IDisposable
             return loaded;
         }
 
-        _logger.LogWarning("Could not load configuration from {Path}; using built-in defaults. Reason: {Reason}", _configPath, error);
-        return new AppConfig();
+        var defaults = new AppConfig();
+
+        // Seed a default config on first run so there is always a discoverable file to edit.
+        // Only do this when the file is genuinely absent: never clobber an existing file that
+        // merely failed to parse/validate, so a bad edit stays visible instead of being erased.
+        if (!File.Exists(_configPath))
+        {
+            if (TryWriteDefaultConfig(defaults, out var writeError))
+            {
+                _logger.LogInformation("No configuration found; wrote a default config to {Path}.", _configPath);
+            }
+            else
+            {
+                _logger.LogWarning("No configuration found and could not create a default at {Path} ({Reason}); using built-in defaults.", _configPath, writeError);
+            }
+        }
+        else
+        {
+            _logger.LogWarning("Could not load configuration from {Path}; using built-in defaults. Reason: {Reason}", _configPath, error);
+        }
+
+        return defaults;
+    }
+
+    /// <summary>
+    /// Write a default configuration file, creating the parent directory if needed. Uses a
+    /// temp-file-then-move so a concurrent reader never observes a half-written file.
+    /// </summary>
+    private bool TryWriteDefaultConfig(AppConfig config, out string? error)
+    {
+        error = null;
+        try
+        {
+            var dir = Path.GetDirectoryName(_configPath);
+            if (!string.IsNullOrEmpty(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+
+            var json = JsonSerializer.Serialize(config, SerializerOptions);
+            var tempPath = _configPath + ".tmp";
+            File.WriteAllText(tempPath, json);
+            File.Move(tempPath, _configPath, overwrite: false);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            return false;
+        }
     }
 
     /// <summary>

@@ -30,9 +30,11 @@ static int RunWindows(string[] args)
         case "remove":
             return ServiceControl.Uninstall();
         case "scan":
+            WarnIfNotElevated();
             return RunOneShotScan();
         case "run":
         case "":
+            WarnIfNotElevated();
             RunService(args);
             return 0;
         case "-h":
@@ -45,6 +47,23 @@ static int RunWindows(string[] args)
             PrintUsage();
             return 1;
     }
+}
+
+[SupportedOSPlatform("windows")]
+static void WarnIfNotElevated()
+{
+    // When hosted by the Service Control Manager the process runs as LocalSystem (elevated), so
+    // only warn for interactive/manual runs that lack an Administrator token. Enabling devices via
+    // SetupAPI needs elevation; without it, enable attempts fail with access errors.
+    if (WindowsServiceHelpers.IsWindowsService() || ServiceControl.IsElevated())
+    {
+        return;
+    }
+
+    Console.Error.WriteLine(
+        "WARNING: Not running as Administrator. Enabling devices requires elevation, so enable " +
+        "attempts will fail. Re-run from an elevated prompt, or install the service " +
+        "('DeviceAutoEnabler.exe install' as Administrator) to run automatically as LocalSystem.");
 }
 
 [SupportedOSPlatform("windows")]

@@ -39,16 +39,9 @@ Uninstall from **Settings → Apps** (or *Add/Remove Programs*). This stops and 
 
 Edit `C:\ProgramData\DeviceAutoEnabler\config.json`. The service watches this file and **hot-reloads** on save. If you save an invalid file, it is rejected and the last-good configuration is kept (the rejection is logged), so a typo never crash-loops the service.
 
-> **You must edit this file with an elevated editor.** The installer intentionally locks the folder down so only **Administrators** and **SYSTEM** can write it and **Users** are read-only. This is deliberate: the service runs as `LocalSystem`, and this file controls which disabled devices it force-enables, so a standard user must not be able to change it. Opening it in a normal (non-elevated) editor lets you read but **not save**.
+> **Permissions:** the installer grants your account (the **Users** group) **Modify** on `config.json`, so you can edit it directly in any text editor. The service runs as `LocalSystem`; **SYSTEM** and **Administrators** always keep full control so it can read the file, and the `logs` folder stays read-only for standard users.
 >
-> The right way to edit it is to launch your editor **as administrator** — for example, from an elevated PowerShell/Terminal:
->
-> ```powershell
-> # Run this from an elevated (Administrator) prompt
-> notepad "C:\ProgramData\DeviceAutoEnabler\config.json"
 > ```
->
-> You should **not** need to take ownership of the file; if you did, it was only because the editor wasn't elevated. Taking ownership also weakens the folder's protection, so prefer editing elevated instead.
 
 ### Finding a device's name / hardware ID
 

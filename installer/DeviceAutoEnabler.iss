@@ -68,6 +68,14 @@ Filename: "{sys}\icacls.exe"; \
   Flags: runhidden waituntilterminated; \
   StatusMsg: "Securing configuration folder..."
 
+; 1b) Let interactive users edit ONLY config.json directly. SYSTEM (S-1-5-18) and Administrators (S-1-5-32-544) keep full control so the
+;     service can always read it; the logs folder stays read-only for Users. This deliberately
+;     lets a standard user change which devices the service enables (accepted tradeoff).
+Filename: "{sys}\icacls.exe"; \
+  Parameters: """{commonappdata}\{#MyServiceName}\config.json"" /grant ""*S-1-5-32-545:M"" /C"; \
+  Flags: runhidden waituntilterminated; \
+  StatusMsg: "Granting configuration edit permission..."
+
 ; 2) Register and start the service (LocalSystem, auto-start) via the app's own install verb.
 Filename: "{app}\{#MyExeName}"; Parameters: "install"; Flags: runhidden waituntilterminated; StatusMsg: "Registering and starting the service..."
 

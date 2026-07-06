@@ -41,8 +41,7 @@ Uninstall from **Settings → Apps** (or *Add/Remove Programs*). This stops and 
 Edit `C:\ProgramData\DeviceAutoEnabler\config.json`. The service watches this file and **hot-reloads** on save. If you save an invalid file, it is rejected and the last-good configuration is kept (the rejection is logged), so a typo never crash-loops the service.
 
 > **Permissions:** the installer grants your account (the **Users** group) **Modify** on `config.json`, so you can edit it directly in any text editor. The service runs as `LocalSystem`; **SYSTEM** and **Administrators** always keep full control so it can read the file, and the `logs` folder stays read-only for standard users.
->
-> ```
+
 
 ### Finding a device's name / hardware ID
 

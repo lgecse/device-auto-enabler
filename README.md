@@ -12,8 +12,10 @@ It was built for the **ASUS ROG Xbox Ally X** handheld + **GIGABYTE AORUS RTX 50
 
 ## Install
 
-1. Download `DeviceAutoEnabler-Setup-<version>.exe` (and the matching `.sha256`) from the [Releases](../../releases) page.
-2. (Recommended) Verify the download in PowerShell:
+1. Download `DeviceAutoEnabler-Setup-<version>.exe` from the [Releases](../../releases) page.
+2. (Optional) Verify the download in PowerShell:
+
+   Download the `.sha256` hash)from the [Releases](../../releases) page.
 
    ```powershell
    Get-FileHash .\DeviceAutoEnabler-Setup-<version>.exe -Algorithm SHA256
@@ -26,7 +28,6 @@ The installer will:
 
 - install the executable to `C:\Program Files\DeviceAutoEnabler\`,
 - create `C:\ProgramData\DeviceAutoEnabler\config.json` from the shipped example **only if it does not already exist** (your edits survive upgrades),
-- lock down `C:\ProgramData\DeviceAutoEnabler\` so only **Administrators** and **SYSTEM** can write it and **Users** can only read it,
 - register and start the `DeviceAutoEnabler` service as `LocalSystem` with automatic startup.
 
 ### Uninstall
